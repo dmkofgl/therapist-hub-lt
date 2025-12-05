@@ -11,13 +11,17 @@ on:
       testFile:
         description: 'Relative path to .jmx test file'
         required: true
-        default: 'Just_test.jmx'
+        default: 'therapist-hub.jmx'
       threads:
         description: 'Number of threads'
         required: true
-        default: '10'
+        default: '1'
       loops:
         description: 'Number of loops'
+        required: true
+        default: '1'
+      rampTime:
+        description: 'Ramp-up time in seconds'
         required: true
         default: '1'
       deployWithPAT:
@@ -46,14 +50,27 @@ jobs:
           tar -xzf jmeter.tgz
           mv apache-jmeter-${JMETER_VERSION} jmeter
           ls -la jmeter/bin
-
+      - name: Create db.properties from secrets
+        run: |
+          # write properties without leading indentation so values are exact
+          printf 'db.user=%s\n' "${{ secrets.DB_USER }}" > db.properties
+          printf 'db.pass=%s\n' "${{ secrets.DB_PASS }}" >> db.properties
+          printf 'db.url=%s\n' "${{ secrets.DB_URL }}" >> db.properties
       - name: Run JMeter (non-GUI)
         run: |
           set -e
-          echo "Running JMeter test: '${{ github.event.inputs.testFile }}' with threads=${{ github.event.inputs.threads }} loops=${{ github.event.inputs.loops }}"
+          echo "Running JMeter test: '${{ github.event.inputs.testFile }}' with threads=${{ github.event.inputs.threads }} loops=${{ github.event.inputs.loops }} rampTime=${{ github.event.inputs.rampTime }}"
           mkdir -p results
           rm -rf results/report || true
-          ./jmeter/bin/jmeter -n -t "${{ github.event.inputs.testFile }}" -l results/results.jtl -e -o results/report -Jthreads=${{ github.event.inputs.threads }} -Jloops=${{ github.event.inputs.loops }}
+          ./jmeter/bin/jmeter -n \
+            -t "${{ github.event.inputs.testFile }}" \
+            -q db.properties \
+            -l results/results.jtl \
+            -e \
+            -o results/report \
+            -Jthreads="${{ github.event.inputs.threads }}" \
+            -Jloops="${{ github.event.inputs.loops }}" \
+            -JrampTime="${{ github.event.inputs.rampTime }}"
 
       - name: Show generated files (debug)
         run: |
