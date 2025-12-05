@@ -50,6 +50,11 @@ jobs:
           tar -xzf jmeter.tgz
           mv apache-jmeter-${JMETER_VERSION} jmeter
           ls -la jmeter/bin
+          # Download PostgreSQL JDBC driver so JMeter can connect to Postgres during tests
+          PGJDBC_VERSION=42.6.0
+          echo "Downloading PostgreSQL JDBC driver ${PGJDBC_VERSION}..."
+          curl -sSL "https://repo1.maven.org/maven2/org/postgresql/postgresql/${PGJDBC_VERSION}/postgresql-${PGJDBC_VERSION}.jar" -o jmeter/lib/postgresql-${PGJDBC_VERSION}.jar
+          ls -la jmeter/lib | head -n 20
       - name: Create db.properties from secrets
         run: |
           # write properties without leading indentation so values are exact
